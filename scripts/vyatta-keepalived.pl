@@ -27,7 +27,8 @@ use lib "/opt/vyatta/share/perl5/";
 use Vyatta::Config;
 use Vyatta::Keepalived;
 use Vyatta::Interface;
-use Vyatta::ConntrackSync;
+#ubnt does not support conntracksync
+#use Vyatta::ConntrackSync;
 use Vyatta::Misc;
 use Getopt::Long;
 
@@ -66,6 +67,12 @@ sub get_ctsync_syncgrp {
   my ($origfunc) = @_;
   my $failover_sync_grp = undef;
 
+  #
+  # Currently ubnt doesn't support the conntrack sync feature, so
+  # just return here.
+  #
+  return $failover_sync_grp;
+
   my $listnodesfunc = "listNodes";
   my $returnvalfunc = "returnValue";
   if ( defined $origfunc ) {
@@ -85,6 +92,7 @@ sub get_ctsync_syncgrp {
   return $failover_sync_grp;
 }
 
+
 sub keepalived_get_values {
   my ( $intf, $path , $noerr) = @_;
 
@@ -103,7 +111,7 @@ sub keepalived_get_values {
   if ( $config->isDeleted("vrrp") ) {
       return ($output, @errs) if $noerr;
       vrrp_log("vrrp_instance [$intf] deleted");
-      return ( $output, @errs );      
+      return ( $output, @errs );
   }
 
   $config->setLevel("$path vrrp vrrp-group");
@@ -114,7 +122,7 @@ sub keepalived_get_values {
       $err = "must define a vrrp-group";
       Vyatta::Config::outputError(\@loc, $err);
       push @errs, $err;
-      return ( $output, @errs );      
+      return ( $output, @errs );
   }
   foreach my $group (@groups) {
     my $vrrp_instance = "vyatta-$intf-$group";
@@ -259,7 +267,7 @@ sub keepalived_get_values {
         push @errs, $err;
         next;
       }
-    } 
+    }
 
     # Transition scripts
     $config->setLevel("$path vrrp vrrp-group $group run-transition-scripts");
@@ -626,10 +634,10 @@ if ( $action eq "list-vrrp-group" ) {
 # 1. a vrrp node under one of the interfaces
 # 2. service conntrack-sync when conntrack-sync uses VRRP as failover-mechanism
 #
-# when called from conntrack-sync; we just need to add/remove config 
-# for sync-group transition scripts and restart daemon. We do NOT 
-# perform any other actions usually done in the update part of this 
-# script otherwise 
+# when called from conntrack-sync; we just need to add/remove config
+# for sync-group transition scripts and restart daemon. We do NOT
+# perform any other actions usually done in the update part of this
+# script otherwise
 #
 
 if ( !defined $ctsync ) {
@@ -672,19 +680,19 @@ if ( !defined $ctsync ) {
 # function once to generate the entire keepalived conf file and restart the
 # daemon 1 time.  Unfortuately the cli doesn't support nested end nodes, so
 # we have to put and end node at every vrrp node and call this function for
-# every vrrp instance, but since we only want to start the daemon once we 
+# every vrrp instance, but since we only want to start the daemon once we
 # need to keep track of some state.  The first call checks if the "changes"
 # file exists, if not it search for all the vrrp instances that have changed
 # and adds them to the changes file.  As each instance is processed it is
 # removed from changes and when there are no more changes the daemon is
-# started/restarted/stopped.  Now since we need to run the script for each 
+# started/restarted/stopped.  Now since we need to run the script for each
 # instance, we can NOT do "commit" checks in the node.def files since that
 # prevents the end node from getting called.  So all the validation needs to
-# be in this script, but why not just do all the work once when the changes 
-# file is empty?  Well the problem then becomes that when the validation 
+# be in this script, but why not just do all the work once when the changes
+# file is empty?  Well the problem then becomes that when the validation
 # fails, the non-zero exit needs to be associated with the end node otherwise
 # the cli will assume it's good push it through to the active config.  So
-# we need to do only the validation for the instance being processed and 
+# we need to do only the validation for the instance being processed and
 # then on the last instance generate the full conf file and signal the daemon
 # if any changes have been made even if the last instance has a non-zero exit.
 #
@@ -698,14 +706,14 @@ if ( $action eq "update" ) {
       #
       # Shouldn't happen, but ...
       # - one place were this has been know to occur is if a vif is deleted
-      #   that has a vrrp instance under it.  Because the cli doesn't 
+      #   that has a vrrp instance under it.  Because the cli doesn't
       #   reverse priorities on delete, then the vrrp under the vif
       #   is gone by the time we get here.
       #
       vrrp_log("unexpected 0 changes");
     }
   }
-   
+
   my $intf = new Vyatta::Interface($vrrp_intf);
   if (! defined $intf) {
       die "Error: invalid interface [$vrrp_intf]";
@@ -720,7 +728,7 @@ if ( $action eq "update" ) {
       vrrp_log("instances $vrrp_instances");
       if ( $vrrp_instances > 0 ) {
           restart_daemon($conf_file);
-          # The changes_file should already be gone by this point, but 
+          # The changes_file should already be gone by this point, but
           # this is the "belt & suspenders" approach.
           unlink($changes_file);
           vrrp_log("end transaction\n");
@@ -745,7 +753,7 @@ if ( $action eq "update-ctsync" ) {
     vrrp_log("instances $vrrp_instances");
     if ($vrrp_instances > 0) {
         restart_daemon($conf_file);
-    } 
+    }
     exit 0;
 }
 

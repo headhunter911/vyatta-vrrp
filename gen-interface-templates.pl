@@ -14,10 +14,10 @@
 # Portions created by Vyatta are Copyright (C) 2009 Vyatta, Inc.
 # All Rights Reserved.
 #
-# Author: John Southworth
-# Date: March 2012
-# Description: Script to automatically generate per-interface vrrp 
-#              templates.
+# Author: Bob Gilligan
+# Date: August 2009
+# Description: Script to automatically generate per-interface templates
+#              for IPv6 Router Advertisements
 #
 # **** End License ****
 
@@ -29,25 +29,40 @@ my $debug = $ENV{'DEBUG'};
 
 # Mapping from configuration level to ifname used AT THAT LEVEL
 my %interface_hash = (
-    'ethernet/node.tag'                               => '$VAR(@)',
-    'ethernet/node.tag/vif/node.tag'                  => '$VAR(../@).$VAR(@)',
-    'ethernet/node.tag/vif-s/node.tag'                => '$VAR(../@).$VAR(@)',
-    'ethernet/node.tag/vif-s/node.tag/vif-c/node.tag' => '$VAR(../../@).$VAR(../@).$VAR(@)',
-    'bonding/node.tag'                                => '$VAR(@)',
-    'bonding/node.tag/vif/node.tag'                   => '$VAR(../@).$VAR(@)',
-    'bonding/node.tag/vif-s/node.tag'                 => '$VAR(../@).$VAR(@)',
-    'bonding/node.tag/vif-s/node.tag/vif-c/node.tag'  => '$VAR(../../@).$VAR(../@).$VAR(@)',
+    'ethernet/node.tag'                             => '$VAR(@)',
+    'ethernet/node.tag/pppoe/node.tag'              => 'pppoe$VAR(@)',
+    'ethernet/node.tag/vif/node.tag'                => '$VAR(../@).$VAR(@)',
+    'ethernet/node.tag/vif/node.tag/pppoe/node.tag' => 'pppoe$VAR(@)',
+    'bonding/node.tag'                              => '$VAR(@)',
+    'bonding/node.tag/vif/node.tag'                 => '$VAR(../@).$VAR(@)',
+    'pseudo-ethernet/node.tag'                      => '$VAR(@)',
+    'pseudo-ethernet/node.tag/vif/node.tag'         => '$VAR(../@).$VAR(@)',
+    'pseudo-ethernet/node.tag/pppoe/node.tag'       => 'pppoe$VAR(@)',
+    'bridge/node.tag'                               => '$VAR(@)',
+    'bridge/node.tag/pppoe/node.tag'                => 'pppoe$VAR(@)',
+    'bridge/node.tag/vif/node.tag'                  => '$VAR(../@).$VAR(@)',
+    'bridge/node.tag/vif/node.tag/pppoe/node.tag'   => 'pppoe$VAR(@)',
+    'switch/node.tag'                               => '$VAR(@)',
+    'switch/node.tag/vif/node.tag'                  => '$VAR(../@).$VAR(@)',
+    'switch/node.tag/pppoe/node.tag'                => 'pppoe$VAR(@)',
+    'switch/node.tag/vif/node.tag/pppoe/node.tag'   => 'pppoe$VAR(@)',
 );
 
 sub gen_template {
     my ( $inpath, $outpath, $ifname ) = @_;
-
+    
     print $outpath, "\n" if ($debug);
     opendir my $d, $inpath
       or die "Can't open: $inpath:$!";
 
     # walk through sample templates
     foreach my $name ( grep { !/^\./ } readdir $d ) {
+        if ($ifname =~ /^pppoe/ and $name eq 'dhcp-options') {
+            next;
+        }       
+        if ($ifname =~ /^pppoe/ and $name eq 'vrrp') {
+            next;
+        }       
         my $in  = "$inpath/$name";
         my $out = "$outpath/$name";
 
@@ -102,3 +117,9 @@ foreach my $if_tree ( keys %interface_hash ) {
 
     gen_template( $inpath, $outpath, $interface_hash{$if_tree} );
 }
+
+# Local Variables:
+# mode: perl
+# indent-tabs-mode: nil
+# perl-indent-level: 4
+# End:
