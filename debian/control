@@ -12,6 +12,9 @@ Depends: perl,
  vyatta-cfg-system (>= 0.20.8),
  vyatta-op (>= 0.13.259),
  vyatta-bash | bash (>= 3.1),
- keepalived (>= 1.2.2)
+ vyatta-keepalived (>= 1:1.2.19)
+Replaces: vyatta-cfg-system (>= 0.20.22),
+ libvyatta-cfg1 (>= 1.0.17),
+ vyatta-op (>= 1:0.14.18)
 Description: VyOS configuration and operational commands for VRRP
  VyOS configuration and operational templates and scripts for VRRP
